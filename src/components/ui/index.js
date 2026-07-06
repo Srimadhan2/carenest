@@ -10,3 +10,5 @@ export { Modal } from './Modal';
 export { ProgressIndicator } from './ProgressIndicator';
 export { EmptyState } from './EmptyState';
 export { VoiceButton } from './VoiceButton';
+export { ListRow, ListGroup } from './ListRow';
+export { SegmentedControl } from './SegmentedControl';

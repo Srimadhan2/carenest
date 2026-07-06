@@ -1,29 +1,15 @@
 import { Outlet } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '@/components/navigation/Sidebar';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useCareContext } from '@/contexts/CareContext';
-import { useUIContext } from '@/contexts/UIContext';
-import { ROUTES } from '@/utils/constants/routes';
+import { TabBar } from '@/components/navigation/TabBar';
 
 export function AppLayout() {
-  const navigate = useNavigate();
-  const { signOut } = useAuthContext();
-  const { resetCare } = useCareContext();
-  const { sidebarCollapsed } = useUIContext();
-
-  const handleSignOut = async () => {
-    await signOut();
-    resetCare();
-    navigate(ROUTES.HOME);
-  };
-
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar onSignOut={handleSignOut} collapsed={sidebarCollapsed} />
-      <main className="flex flex-1 flex-col overflow-auto">
+      <Sidebar />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-6 md:px-8 md:pb-10">
         <Outlet />
       </main>
+      <TabBar />
     </div>
   );
 }

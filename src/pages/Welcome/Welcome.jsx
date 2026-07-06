@@ -1,33 +1,28 @@
 import { useNavigate } from 'react-router-dom';
-import { Heart, Shield, Notebook } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { ROUTES } from '@/utils/constants/routes';
 import { STRINGS } from '@/utils/constants/strings';
+import { ROUTES } from '@/utils/constants/routes';
+
+const benefits = [STRINGS.welcome.benefit1, STRINGS.welcome.benefit2, STRINGS.welcome.benefit3];
 
 export default function Welcome() {
   const navigate = useNavigate();
 
-  const benefits = [
-    { icon: Notebook, text: STRINGS.welcome.benefit1 },
-    { icon: Shield, text: STRINGS.welcome.benefit2 },
-    { icon: Heart, text: STRINGS.welcome.benefit3 },
-  ];
-
   return (
-    <div>
-      <h1 className="mb-3 text-title font-semibold text-text">{STRINGS.welcome.title}</h1>
-      <p className="mb-8 text-body text-text-secondary">{STRINGS.welcome.subtitle}</p>
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-hero font-semibold text-text">{STRINGS.welcome.title}</h1>
+        <p className="mt-3 text-body text-text-secondary">{STRINGS.welcome.subtitle}</p>
+      </div>
 
-      <ul className="mb-10 flex flex-col gap-4">
-        {benefits.map(({ icon: Icon, text }) => (
-          <li
-            key={text}
-            className="flex items-center gap-4 rounded-xl bg-surface p-4 border border-border"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-              <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
-            </div>
-            <span className="text-body text-text">{text}</span>
+      <ul className="flex flex-col gap-4">
+        {benefits.map((benefit) => (
+          <li key={benefit} className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <CheckCircle className="h-5 w-5 text-primary" aria-hidden="true" />
+            </span>
+            <span className="text-body text-text">{benefit}</span>
           </li>
         ))}
       </ul>

@@ -19,3 +19,16 @@ export const fadeTransition = {
   duration: 0.2,
   ease: 'easeOut',
 };
+
+export const springVariants = {
+  initial: { opacity: 0, scale: 0.96, y: 8 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.96, y: 8 },
+};
+
+export const springTransition = {
+  type: 'spring',
+  stiffness: 320,
+  damping: 26,
+  mass: 0.8,
+};

@@ -115,4 +115,32 @@ export const authService = {
     const user = getMockUser();
     return ok(user ? { user } : null);
   },
+
+  /**
+   * Subscribe to auth changes (OAuth redirect return, token refresh, sign-out).
+   * No-op in mock mode. Returns an unsubscribe function.
+   * @param {(user: import('@/services/types.js').User | null) => void} callback
+   */
+  onAuthStateChange(callback) {
+    if (!(FEATURE_FLAGS.USE_SUPABASE && supabase)) {
+      return () => {};
+    }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      callback(
+        user
+          ? {
+              id: user.id,
+              email: user.email ?? '',
+              displayName: user.user_metadata?.full_name ?? user.email ?? '',
+              avatarUrl: user.user_metadata?.avatar_url,
+              authProvider: 'google',
+            }
+          : null,
+      );
+    });
+    return () => subscription.unsubscribe();
+  },
 };

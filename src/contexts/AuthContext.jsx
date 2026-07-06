@@ -10,15 +10,36 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     authService.getCurrentUser().then((result) => {
+      if (cancelled) {
+        return;
+      }
       if (result.data) {
         setUser(result.data);
       }
       setIsLoading(false);
     });
+
+    // Supabase mode: keeps user in sync after the Google OAuth redirect,
+    // token refreshes, and sign-outs in other tabs. No-op in mock mode.
+    const unsubscribe = authService.onAuthStateChange((nextUser) => {
+      if (!cancelled) {
+        setUser(nextUser);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    // Supabase mode redirects to Google here; the user state is set by
+    // onAuthStateChange after the redirect back. Mock mode resolves inline.
     const result = await authService.signInWithGoogle();
     if (result.data && typeof result.data === 'object' && 'id' in result.data) {
       setUser(result.data);

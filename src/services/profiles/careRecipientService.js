@@ -47,7 +47,21 @@ export const careRecipientService = {
     return ok(stored);
   },
 
+  /** Care recipient owned by the signed-in user (RLS-scoped), or null. */
   async getActiveCareRecipient() {
+    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
+      const { data, error } = await supabase
+        .from('care_recipients')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        return err(new ServiceError(error.message));
+      }
+      return ok(data ? mapFromDb(data) : null);
+    }
     const stored = getMock();
     return ok(stored);
   },

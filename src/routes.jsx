@@ -14,6 +14,7 @@ const CareRecipient = lazy(() => import('@/pages/CareRecipient/CareRecipient'));
 const Caregiver = lazy(() => import('@/pages/Caregiver/Caregiver'));
 const Dashboard = lazy(() => import('@/pages/Dashboard/Dashboard'));
 const Notes = lazy(() => import('@/pages/Notes/Notes'));
+const Profile = lazy(() => import('@/pages/Profile/Profile'));
 const NotFound = lazy(() => import('@/pages/NotFound/NotFound'));
 
 export default function AppRoutes() {
@@ -46,10 +47,11 @@ export default function AppRoutes() {
           >
             <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
             <Route path={ROUTES.NOTES} element={<Notes />} />
+            <Route path={ROUTES.PROFILE} element={<Profile />} />
           </Route>
 
-          <Route path="*" element={<NotFound />} />
           <Route path="/login" element={<Navigate to={ROUTES.HOME} replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </OnboardingGuard>

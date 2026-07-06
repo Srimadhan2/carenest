@@ -33,6 +33,13 @@ Never use hex values in JSX. All colors via Tailwind theme classes from `src/sty
 | `warning`        | `#FF9500` | `text-warning`               |
 | `danger`         | `#FF3B30` | `text-danger`                |
 
+### Message Bubbles (iMessage-inspired)
+
+| Token             | Hex       | Tailwind usage       | Usage                                                 |
+| ----------------- | --------- | -------------------- | ----------------------------------------------------- |
+| `bubble-sent`     | `#007AFF` | `bg-bubble-sent`     | Caregiver-authored notes, right-aligned, white text   |
+| `bubble-received` | `#E9E9EB` | `bg-bubble-received` | System/AI summaries (future), left-aligned, dark text |
+
 ---
 
 ## Typography
@@ -67,12 +74,13 @@ Line height: 1.4–1.6 for body text.
 
 ## Radius & Shadow
 
-| Element | Radius               | Shadow            |
-| ------- | -------------------- | ----------------- |
-| Button  | `rounded-xl` (12px)  | none              |
-| Card    | `rounded-2xl` (16px) | soft `shadow-sm`  |
-| Modal   | `rounded-2xl`        | `shadow-lg`       |
-| Input   | `rounded-xl`         | none, border only |
+| Element | Radius                  | Shadow            |
+| ------- | ----------------------- | ----------------- |
+| Button  | `rounded-xl` (12px)     | none              |
+| Card    | `rounded-2xl` (16px)    | soft `shadow-sm`  |
+| Modal   | `rounded-2xl`           | `shadow-lg`       |
+| Input   | `rounded-xl`            | none, border only |
+| Bubble  | `rounded-bubble` (20px) | subtle, no border |
 
 ---
 
@@ -80,12 +88,15 @@ Line height: 1.4–1.6 for body text.
 
 Framer Motion presets in `src/lib/motion.js`.
 
-| Transition   | Duration | Easing   |
-| ------------ | -------- | -------- |
-| Page enter   | 250ms    | ease-out |
-| Button press | 150ms    | ease-out |
-| Modal open   | 250ms    | ease-out |
-| Toast        | 200ms    | ease-out |
+| Transition        | Duration | Easing                                         |
+| ----------------- | -------- | ---------------------------------------------- |
+| Page enter        | 250ms    | ease-out                                       |
+| Button press      | 150ms    | ease-out                                       |
+| Modal open        | 250ms    | ease-out                                       |
+| Toast             | 200ms    | ease-out                                       |
+| Bubble/card entry | spring   | `springTransition` (stiffness 320, damping 26) |
+
+Use `springVariants` + `springTransition` for bubble and card entrance animations (scale + fade + slide).
 
 **Reduced motion:** All animations respect `prefers-reduced-motion: reduce` in `animations.css`.
 

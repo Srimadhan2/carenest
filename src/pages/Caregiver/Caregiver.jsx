@@ -1,87 +1,86 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Button } from '@/components/ui';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { FormField, GenderSelect } from '@/components/forms/FormField';
 import { useForm } from '@/hooks/useForm';
 import { useCare } from '@/hooks/useCare';
+import { useUIContext } from '@/contexts/UIContext';
 import { validateCaregiver } from '@/utils/validators/profileValidators';
-import { ROUTES } from '@/utils/constants/routes';
 import { STRINGS } from '@/utils/constants/strings';
+import { ROUTES } from '@/utils/constants/routes';
+
+const initialValues = {
+  firstName: '',
+  lastName: '',
+  dateOfBirth: '',
+  gender: '',
+};
 
 export default function Caregiver() {
   const navigate = useNavigate();
   const { saveCaregiver, finishOnboarding } = useCare();
-  const [isSaving, setIsSaving] = useState(false);
-
-  const { values, errors, handleChange, validateForm } = useForm(
-    {
-      firstName: '',
-      lastName: '',
-      dateOfBirth: '',
-      gender: '',
-    },
+  const { showToast } = useUIContext();
+  const { values, errors, handleChange, handleBlur, validateForm } = useForm(
+    initialValues,
     validateCaregiver,
   );
+  const s = STRINGS.caregiver;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!validateForm()) {
       return;
     }
-
-    setIsSaving(true);
-    const result = await saveCaregiver(values);
-    setIsSaving(false);
-
-    if (!result.error) {
-      finishOnboarding();
-      navigate(ROUTES.DASHBOARD);
-    }
+    await saveCaregiver(values);
+    finishOnboarding();
+    showToast(s.encouragement, 'success');
+    navigate(ROUTES.DASHBOARD);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1 className="mb-2 text-title font-semibold text-text">{STRINGS.caregiver.title}</h1>
-      <p className="mb-8 text-body text-text-secondary">{STRINGS.caregiver.subtitle}</p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-title font-semibold text-text">{s.title}</h1>
+        <p className="mt-2 text-body text-text-secondary">{s.subtitle}</p>
+      </div>
 
       <FormField>
         <Input
-          label={STRINGS.caregiver.firstName}
           name="firstName"
+          label={s.firstName}
+          placeholder="Sarah"
           value={values.firstName}
           onChange={(e) => handleChange('firstName', e.target.value)}
+          onBlur={() => handleBlur('firstName')}
           error={errors.firstName}
-          autoComplete="given-name"
         />
         <Input
-          label={STRINGS.caregiver.lastName}
           name="lastName"
+          label={s.lastName}
+          placeholder="Johnson"
           value={values.lastName}
           onChange={(e) => handleChange('lastName', e.target.value)}
+          onBlur={() => handleBlur('lastName')}
           error={errors.lastName}
-          autoComplete="family-name"
         />
         <Input
-          label={STRINGS.caregiver.dateOfBirth}
-          name="dateOfBirth"
           type="date"
+          name="dateOfBirth"
+          label={s.dateOfBirth}
           value={values.dateOfBirth}
           onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+          onBlur={() => handleBlur('dateOfBirth')}
           error={errors.dateOfBirth}
         />
         <GenderSelect
-          label={STRINGS.caregiver.gender}
+          label={s.gender}
           value={values.gender}
-          onChange={(v) => handleChange('gender', v)}
+          onChange={(value) => handleChange('gender', value)}
           error={errors.gender}
         />
       </FormField>
 
-      <p className="mt-6 rounded-xl bg-primary/5 p-4 text-body text-text">
-        {STRINGS.caregiver.encouragement}
-      </p>
-
-      <Button type="submit" size="lg" className="mt-8 w-full" isLoading={isSaving}>
+      <Button type="submit" size="lg" className="w-full">
         {STRINGS.onboarding.complete}
       </Button>
     </form>

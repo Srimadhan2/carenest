@@ -1,33 +1,24 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, LogOut } from 'lucide-react';
+import { House, FileText, User } from 'lucide-react';
 import { ROUTES } from '@/utils/constants/routes';
 import { STRINGS } from '@/utils/constants/strings';
 import { cn } from '@/utils/helpers/cn';
 import { Logo } from '@/components/ui/Logo';
 
 const navItems = [
-  { to: ROUTES.DASHBOARD, label: STRINGS.nav.dashboard, icon: LayoutDashboard },
+  { to: ROUTES.DASHBOARD, label: STRINGS.nav.dashboard, icon: House },
   { to: ROUTES.NOTES, label: STRINGS.nav.notes, icon: FileText },
+  { to: ROUTES.PROFILE, label: STRINGS.nav.profile, icon: User },
 ];
 
-export function Sidebar({ onSignOut, collapsed = false }) {
+export function Sidebar() {
   return (
     <aside
-      className={cn(
-        'flex h-full flex-col border-r border-border bg-surface',
-        collapsed ? 'w-16' : 'w-64',
-      )}
-      aria-label="Main navigation"
+      className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface md:flex"
+      aria-label="Primary"
     >
       <div className="border-b border-border p-6">
-        {!collapsed && <Logo size="sm" />}
-        {collapsed && (
-          <div className="flex justify-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
-              C
-            </div>
-          </div>
-        )}
+        <Logo size="sm" />
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-4">
@@ -38,6 +29,7 @@ export function Sidebar({ onSignOut, collapsed = false }) {
             className={({ isActive }) =>
               cn(
                 'flex min-h-11 items-center gap-3 rounded-xl px-4 text-label font-medium transition-colors',
+                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                 isActive
                   ? 'bg-primary/10 text-primary'
                   : 'text-text-secondary hover:bg-background hover:text-text',
@@ -45,23 +37,10 @@ export function Sidebar({ onSignOut, collapsed = false }) {
             }
           >
             <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-            {!collapsed && <span>{label}</span>}
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>
-
-      {onSignOut && (
-        <div className="border-t border-border p-4">
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="flex min-h-11 w-full items-center gap-3 rounded-xl px-4 text-label text-text-secondary hover:bg-background hover:text-text"
-          >
-            <LogOut className="h-5 w-5" aria-hidden="true" />
-            {!collapsed && <span>{STRINGS.auth.signOut}</span>}
-          </button>
-        </div>
-      )}
     </aside>
   );
 }

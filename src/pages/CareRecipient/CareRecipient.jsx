@@ -1,93 +1,96 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Textarea, Button, VoiceButton } from '@/components/ui';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { VoiceButton } from '@/components/ui/VoiceButton';
 import { FormField, GenderSelect } from '@/components/forms/FormField';
+import HipaaNotice from './components/HipaaNotice';
 import { useForm } from '@/hooks/useForm';
 import { useCare } from '@/hooks/useCare';
 import { validateCareRecipient } from '@/utils/validators/profileValidators';
-import { ROUTES } from '@/utils/constants/routes';
 import { STRINGS } from '@/utils/constants/strings';
-import HipaaNotice from './components/HipaaNotice';
+import { ROUTES } from '@/utils/constants/routes';
+
+const initialValues = {
+  firstName: '',
+  lastName: '',
+  dateOfBirth: '',
+  gender: '',
+  healthDescription: '',
+};
 
 export default function CareRecipient() {
   const navigate = useNavigate();
   const { saveCareRecipient } = useCare();
-  const [isSaving, setIsSaving] = useState(false);
-
-  const { values, errors, handleChange, validateForm } = useForm(
-    {
-      firstName: '',
-      lastName: '',
-      dateOfBirth: '',
-      gender: '',
-      healthDescription: '',
-    },
+  const { values, errors, handleChange, handleBlur, validateForm } = useForm(
+    initialValues,
     validateCareRecipient,
   );
+  const s = STRINGS.careRecipient;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!validateForm()) {
       return;
     }
-
-    setIsSaving(true);
-    const result = await saveCareRecipient(values);
-    setIsSaving(false);
-
-    if (!result.error) {
-      navigate(ROUTES.CAREGIVER);
-    }
+    await saveCareRecipient(values);
+    navigate(ROUTES.CAREGIVER);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1 className="mb-2 text-title font-semibold text-text">{STRINGS.careRecipient.title}</h1>
-      <p className="mb-8 text-body text-text-secondary">{STRINGS.careRecipient.subtitle}</p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-title font-semibold text-text">{s.title}</h1>
+        <p className="mt-2 text-body text-text-secondary">{s.subtitle}</p>
+      </div>
 
       <FormField>
         <Input
-          label={STRINGS.careRecipient.firstName}
           name="firstName"
+          label={s.firstName}
+          placeholder="Mary"
           value={values.firstName}
           onChange={(e) => handleChange('firstName', e.target.value)}
+          onBlur={() => handleBlur('firstName')}
           error={errors.firstName}
-          autoComplete="given-name"
         />
         <Input
-          label={STRINGS.careRecipient.lastName}
           name="lastName"
+          label={s.lastName}
+          placeholder="Johnson"
           value={values.lastName}
           onChange={(e) => handleChange('lastName', e.target.value)}
+          onBlur={() => handleBlur('lastName')}
           error={errors.lastName}
-          autoComplete="family-name"
         />
         <Input
-          label={STRINGS.careRecipient.dateOfBirth}
-          name="dateOfBirth"
           type="date"
+          name="dateOfBirth"
+          label={s.dateOfBirth}
           value={values.dateOfBirth}
           onChange={(e) => handleChange('dateOfBirth', e.target.value)}
+          onBlur={() => handleBlur('dateOfBirth')}
           error={errors.dateOfBirth}
         />
         <GenderSelect
-          label={STRINGS.careRecipient.gender}
+          label={s.gender}
           value={values.gender}
-          onChange={(v) => handleChange('gender', v)}
+          onChange={(value) => handleChange('gender', value)}
           error={errors.gender}
         />
         <Textarea
-          label={STRINGS.careRecipient.healthDescription}
           name="healthDescription"
+          label={s.healthDescription}
+          placeholder={s.healthPlaceholder}
           value={values.healthDescription}
           onChange={(e) => handleChange('healthDescription', e.target.value)}
-          placeholder={STRINGS.careRecipient.healthPlaceholder}
         />
         <VoiceButton />
-        <HipaaNotice />
       </FormField>
 
-      <Button type="submit" size="lg" className="mt-8 w-full" isLoading={isSaving}>
+      <HipaaNotice />
+
+      <Button type="submit" size="lg" className="w-full">
         {STRINGS.onboarding.continue}
       </Button>
     </form>

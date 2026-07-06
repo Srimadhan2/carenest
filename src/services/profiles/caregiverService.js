@@ -34,11 +34,11 @@ export const caregiverService = {
         .from('caregivers')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       if (error) {
         return err(new ServiceError(error.message));
       }
-      return ok(mapFromDb(data));
+      return ok(data ? mapFromDb(data) : null);
     }
     const stored = getMock();
     if (!stored || stored.userId !== userId) {
@@ -47,7 +47,15 @@ export const caregiverService = {
     return ok(stored);
   },
 
+  /** Caregiver row for the signed-in user (RLS-scoped), or null. */
   async getActiveCaregiver() {
+    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
+      const { data, error } = await supabase.from('caregivers').select('*').limit(1).maybeSingle();
+      if (error) {
+        return err(new ServiceError(error.message));
+      }
+      return ok(data ? mapFromDb(data) : null);
+    }
     return ok(getMock());
   },
 

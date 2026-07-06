@@ -1,4 +1,3 @@
-/** @type {import('./routes.js').RoutePath} */
 export const ROUTES = {
   HOME: '/',
   WELCOME: '/welcome',

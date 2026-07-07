@@ -34,9 +34,10 @@ export function OnboardingGuard({ children }) {
   const isOnboardingRoute = ROUTE_GROUPS.ONBOARDING.includes(location.pathname);
   const isAppRoute = ROUTE_GROUPS.APP.includes(location.pathname);
 
-  // Signed-in users never see the login page: first login starts onboarding,
-  // returning login goes straight to the dashboard.
-  if (location.pathname === ROUTES.HOME) {
+  // Signed-in users never see the login / create-account / forgot screens:
+  // first login starts onboarding, returning login goes to the dashboard.
+  // (Reset-password is excluded so recovery links still work while signed in.)
+  if (ROUTE_GROUPS.PUBLIC_AUTH.includes(location.pathname)) {
     return <Navigate to={complete ? ROUTES.DASHBOARD : ROUTES.WELCOME} replace />;
   }
 

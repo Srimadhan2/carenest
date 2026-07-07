@@ -47,6 +47,28 @@ export function AuthProvider({ children }) {
     return result;
   }, []);
 
+  const signInWithEmail = useCallback(async (credentials) => {
+    // onAuthStateChange sets the user in Supabase mode; set it here too so
+    // mock mode (no listener) and immediate reads stay in sync.
+    const result = await authService.signInWithEmail(credentials);
+    if (result.data) {
+      setUser(result.data);
+    }
+    return result;
+  }, []);
+
+  const signUpWithEmail = useCallback(async (input) => {
+    const result = await authService.signUpWithEmail(input);
+    if (result.data?.user && !result.data.needsVerification) {
+      setUser(result.data.user);
+    }
+    return result;
+  }, []);
+
+  const resetPassword = useCallback((email) => authService.resetPassword(email), []);
+
+  const updatePassword = useCallback((password) => authService.updatePassword(password), []);
+
   const signOut = useCallback(async () => {
     await authService.signOut();
     sessionStorageAdapter.clear();
@@ -59,9 +81,22 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(user),
       isLoading,
       signInWithGoogle,
+      signInWithEmail,
+      signUpWithEmail,
+      resetPassword,
+      updatePassword,
       signOut,
     }),
-    [user, isLoading, signInWithGoogle, signOut],
+    [
+      user,
+      isLoading,
+      signInWithGoogle,
+      signInWithEmail,
+      signUpWithEmail,
+      resetPassword,
+      updatePassword,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

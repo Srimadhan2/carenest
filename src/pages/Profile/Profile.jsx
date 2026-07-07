@@ -1,11 +1,13 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut, Pencil, Shield } from 'lucide-react';
 import { Navbar } from '@/components/navigation/Navbar';
 import { ListGroup, ListRow } from '@/components/ui/ListRow';
 import { useCare } from '@/hooks/useCare';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCareContext } from '@/contexts/CareContext';
+import { profileService } from '@/services/profile/profileService';
 import { calculateAge } from '@/utils/helpers/formatAge';
 import { STRINGS } from '@/utils/constants/strings';
 import { ROUTES } from '@/utils/constants/routes';
@@ -25,9 +27,22 @@ export default function Profile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { careRecipient, caregiver } = useCare();
-  const { signOut } = useAuthContext();
+  const { user, signOut } = useAuthContext();
   const { resetCare } = useCareContext();
+  const [profile, setProfile] = useState(null);
   const p = STRINGS.profile;
+
+  useEffect(() => {
+    let cancelled = false;
+    profileService.getProfile().then((result) => {
+      if (!cancelled && result.data) {
+        setProfile(result.data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // Clear all client state so the next account never sees this account's data.
   const handleSignOut = async () => {
@@ -37,12 +52,24 @@ export default function Profile() {
     navigate(ROUTES.HOME);
   };
 
+  const accountName = fullName(profile) || user?.displayName || p.notSet;
+  const accountEmail = profile?.email || user?.email || p.notSet;
   const recipientAge = careRecipient ? calculateAge(careRecipient.dateOfBirth) : null;
   const caregiverAge = caregiver ? calculateAge(caregiver.dateOfBirth) : null;
 
   return (
     <div className="flex flex-col gap-6">
       <Navbar title={p.title} subtitle={p.intro} />
+
+      <ListGroup title={p.accountSection}>
+        <ListRow label={p.name} value={accountName} />
+        <ListRow label={p.email} value={accountEmail} />
+        <ListRow
+          icon={Pencil}
+          label={p.editProfile}
+          onClick={() => navigate(ROUTES.PROFILE_EDIT)}
+        />
+      </ListGroup>
 
       <ListGroup title={p.careRecipientSection}>
         <ListRow label={p.name} value={fullName(careRecipient) ?? p.notSet} />

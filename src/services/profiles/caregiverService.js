@@ -1,89 +1,48 @@
-import { FEATURE_FLAGS } from '@/utils/constants/featureFlags';
-import { supabase } from '@/lib/supabase';
-import { sessionStorageAdapter } from '@/services/storage/sessionStorageAdapter';
-import { ok, err, ServiceError } from '@/services/errors';
-
-const STORAGE_KEY = 'profiles:caregiver';
-
-function generateId() {
-  return `cg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/**
- * @returns {import('@/services/types.js').Caregiver | null}
- */
-function getMock() {
-  const raw = sessionStorageAdapter.get(STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+import { getSupabase } from '@/lib/supabase';
+import { ok, err, fromSupabaseError } from '@/services/errors';
 
 export const caregiverService = {
   /**
    * @param {string} userId
    */
   async getCaregiver(userId) {
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data, error } = await supabase
-        .from('caregivers')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(data ? mapFromDb(data) : null);
+    const { data, error } = await getSupabase()
+      .from('caregivers')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not load the caregiver.'));
     }
-    const stored = getMock();
-    if (!stored || stored.userId !== userId) {
-      return ok(stored);
-    }
-    return ok(stored);
+    return ok(data ? mapFromDb(data) : null);
   },
 
   /** Caregiver row for the signed-in user (RLS-scoped), or null. */
   async getActiveCaregiver() {
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data, error } = await supabase.from('caregivers').select('*').limit(1).maybeSingle();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(data ? mapFromDb(data) : null);
+    const { data, error } = await getSupabase()
+      .from('caregivers')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not load the caregiver.'));
     }
-    return ok(getMock());
+    return ok(data ? mapFromDb(data) : null);
   },
 
   /**
    * @param {Omit<import('@/services/types.js').Caregiver, 'id' | 'createdAt'>} data
    */
   async createCaregiver(data) {
-    const now = new Date().toISOString();
-    const record = {
-      ...data,
-      id: generateId(),
-      createdAt: now,
-    };
-
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data: row, error } = await supabase
-        .from('caregivers')
-        .insert(mapToDb(record))
-        .select()
-        .single();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(mapFromDb(row));
+    const { data: row, error } = await getSupabase()
+      .from('caregivers')
+      .insert(mapToDb(data))
+      .select()
+      .single();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not save the caregiver.'));
     }
-
-    sessionStorageAdapter.set(STORAGE_KEY, JSON.stringify(record));
-    return ok(record);
+    return ok(mapFromDb(row));
   },
 
   /**
@@ -91,26 +50,16 @@ export const caregiverService = {
    * @param {Partial<import('@/services/types.js').Caregiver>} data
    */
   async updateCaregiver(id, data) {
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data: row, error } = await supabase
-        .from('caregivers')
-        .update(mapToDb({ ...data, updatedAt: new Date().toISOString() }))
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(mapFromDb(row));
+    const { data: row, error } = await getSupabase()
+      .from('caregivers')
+      .update(mapToDb(data))
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not save the caregiver.'));
     }
-
-    const stored = getMock();
-    if (!stored || stored.id !== id) {
-      return err(new ServiceError('Caregiver not found'));
-    }
-    const updated = { ...stored, ...data, updatedAt: new Date().toISOString() };
-    sessionStorageAdapter.set(STORAGE_KEY, JSON.stringify(updated));
-    return ok(updated);
+    return ok(mapFromDb(row));
   },
 };
 
@@ -131,15 +80,18 @@ function mapFromDb(row) {
 }
 
 /**
+ * Maps app fields to DB columns, omitting undefined so partial updates only
+ * touch provided columns. updated_at is set by the set_updated_at trigger.
  * @param {Partial<import('@/services/types.js').Caregiver>} record
  */
 function mapToDb(record) {
-  return {
+  const row = {
     user_id: record.userId,
     first_name: record.firstName,
     last_name: record.lastName,
     date_of_birth: record.dateOfBirth,
     gender: record.gender,
-    updated_at: record.updatedAt,
   };
+  Object.keys(row).forEach((key) => row[key] === undefined && delete row[key]);
+  return row;
 }

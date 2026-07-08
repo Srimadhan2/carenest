@@ -1,20 +1,6 @@
-import { FEATURE_FLAGS } from '@/utils/constants/featureFlags';
-import { supabase } from '@/lib/supabase';
-import { sessionStorageAdapter } from '@/services/storage/sessionStorageAdapter';
-import { ok, err, AuthError } from '@/services/errors';
+import { getSupabase } from '@/lib/supabase';
+import { ok, err, AuthError, fromSupabaseAuthError } from '@/services/errors';
 import { ROUTES } from '@/utils/constants/routes';
-
-const SESSION_KEY = 'auth:session';
-
-const MOCK_DELAY = 600;
-
-function delay(ms = MOCK_DELAY) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function supabaseReady() {
-  return Boolean(FEATURE_FLAGS.USE_SUPABASE && supabase);
-}
 
 /**
  * Normalize a Supabase auth user into the app's User shape.
@@ -36,59 +22,18 @@ function mapUser(user) {
   };
 }
 
-/**
- * @returns {import('@/services/types.js').User | null}
- */
-function getMockUser() {
-  const raw = sessionStorageAdapter.get(SESSION_KEY);
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * @param {import('@/services/types.js').User} user
- */
-function setMockUser(user) {
-  sessionStorageAdapter.set(SESSION_KEY, JSON.stringify(user));
-}
-
-async function mockSignInWithGoogle() {
-  await delay();
-  const user = {
-    id: 'mock-user-1',
-    email: 'caregiver@example.com',
-    displayName: 'Sarah Johnson',
-    authProvider: 'mock',
-  };
-  setMockUser(user);
-  return ok(user);
-}
-
-async function supabaseSignInWithGoogle() {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
-  });
-  if (error) {
-    return err(new AuthError(error.message));
-  }
-  return ok(data);
-}
-
 export const authService = {
   async signInWithGoogle() {
-    if (supabaseReady()) {
-      return supabaseSignInWithGoogle();
+    const { data, error } = await getSupabase().auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      return err(fromSupabaseAuthError(error, 'Google sign-in failed. Please try again.'));
     }
-    return mockSignInWithGoogle();
+    return ok(data);
   },
 
   /**
@@ -97,35 +42,23 @@ export const authService = {
    * @returns {Promise<import('@/services/types.js').ServiceResult<{ user: import('@/services/types.js').User | null, needsVerification: boolean }>>}
    */
   async signUpWithEmail({ email, password, firstName, lastName }) {
-    if (supabaseReady()) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            full_name: `${firstName} ${lastName}`.trim(),
-          },
-        },
-      });
-      if (error) {
-        return err(new AuthError(error.message));
-      }
-      // No session means email confirmation is required before login.
-      return ok({ user: mapUser(data.user), needsVerification: !data.session });
-    }
-
-    await delay();
-    const user = {
-      id: `mock-${Date.now()}`,
+    const { data, error } = await getSupabase().auth.signUp({
       email,
-      displayName: `${firstName} ${lastName}`.trim() || email,
-      authProvider: 'mock',
-    };
-    setMockUser(user);
-    return ok({ user, needsVerification: false });
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`.trim(),
+        },
+      },
+    });
+    if (error) {
+      return err(fromSupabaseAuthError(error, 'Could not create your account. Please try again.'));
+    }
+    // No session means email confirmation is required before login.
+    return ok({ user: mapUser(data.user), needsVerification: !data.session });
   },
 
   /**
@@ -133,23 +66,11 @@ export const authService = {
    * @returns {Promise<import('@/services/types.js').ServiceResult<import('@/services/types.js').User | null>>}
    */
   async signInWithEmail({ email, password }) {
-    if (supabaseReady()) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        return err(new AuthError(error.message));
-      }
-      return ok(mapUser(data.user));
+    const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
+    if (error) {
+      return err(fromSupabaseAuthError(error));
     }
-
-    await delay();
-    const user = {
-      id: 'mock-user-1',
-      email,
-      displayName: email,
-      authProvider: 'mock',
-    };
-    setMockUser(user);
-    return ok(user);
+    return ok(mapUser(data.user));
   },
 
   /**
@@ -157,16 +78,12 @@ export const authService = {
    * @param {string} email
    */
   async resetPassword(email) {
-    if (supabaseReady()) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}${ROUTES.RESET_PASSWORD}`,
-      });
-      if (error) {
-        return err(new AuthError(error.message));
-      }
-      return ok(undefined);
+    const { error } = await getSupabase().auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${ROUTES.RESET_PASSWORD}`,
+    });
+    if (error) {
+      return err(fromSupabaseAuthError(error, 'Could not send the reset email. Please try again.'));
     }
-    await delay();
     return ok(undefined);
   },
 
@@ -175,14 +92,10 @@ export const authService = {
    * @param {string} newPassword
    */
   async updatePassword(newPassword) {
-    if (supabaseReady()) {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        return err(new AuthError(error.message));
-      }
-      return ok(undefined);
+    const { error } = await getSupabase().auth.updateUser({ password: newPassword });
+    if (error) {
+      return err(fromSupabaseAuthError(error, 'Could not update your password. Please try again.'));
     }
-    await delay();
     return ok(undefined);
   },
 
@@ -191,51 +104,42 @@ export const authService = {
   },
 
   async signOut() {
-    if (supabaseReady()) {
-      await supabase.auth.signOut();
+    const { error } = await getSupabase().auth.signOut();
+    if (error) {
+      return err(fromSupabaseAuthError(error, 'Could not sign out. Please try again.'));
     }
-    sessionStorageAdapter.remove(SESSION_KEY);
     return ok(undefined);
   },
 
   async getCurrentUser() {
-    if (supabaseReady()) {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error) {
-        return err(new AuthError(error.message));
-      }
-      return ok(mapUser(user));
+    const {
+      data: { user },
+      error,
+    } = await getSupabase().auth.getUser();
+    // A missing session is not an error here: it simply means "no user".
+    if (error) {
+      return ok(null);
     }
-    return ok(getMockUser());
+    return ok(mapUser(user));
   },
 
   async getSession() {
-    if (supabaseReady()) {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        return err(new AuthError(error.message));
-      }
-      return ok(data.session);
+    const { data, error } = await getSupabase().auth.getSession();
+    if (error) {
+      return err(fromSupabaseAuthError(error));
     }
-    const user = getMockUser();
-    return ok(user ? { user } : null);
+    return ok(data.session);
   },
 
   /**
    * Subscribe to auth changes (OAuth redirect return, token refresh, sign-out).
-   * No-op in mock mode. Returns an unsubscribe function.
+   * Returns an unsubscribe function.
    * @param {(user: import('@/services/types.js').User | null) => void} callback
    */
   onAuthStateChange(callback) {
-    if (!supabaseReady()) {
-      return () => {};
-    }
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = getSupabase().auth.onAuthStateChange((_event, session) => {
       callback(mapUser(session?.user));
     });
     return () => subscription.unsubscribe();

@@ -10,7 +10,6 @@ export const STRINGS = {
     signInApple: 'Continue with Apple',
     appleComingSoon: 'Coming soon',
     signOut: 'Sign Out',
-    devNotice: 'Development mode — not for real health information.',
     orDivider: 'or',
     email: 'Email',
     emailPlaceholder: 'you@example.com',

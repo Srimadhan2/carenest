@@ -5,7 +5,6 @@ import { useForm } from '@/hooks/useForm';
 import { validateLogin } from '@/utils/validators/authValidators';
 import { STRINGS } from '@/utils/constants/strings';
 import { ROUTES } from '@/utils/constants/routes';
-import { FEATURE_FLAGS } from '@/utils/constants/featureFlags';
 import { AuthShell } from '@/components/common/AuthShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -112,10 +111,6 @@ export default function Login() {
           {isSubmitting ? a.loggingIn : a.login}
         </Button>
       </form>
-
-      {!FEATURE_FLAGS.USE_SUPABASE && (
-        <p className="text-center text-caption text-text-secondary">{a.devNotice}</p>
-      )}
     </AuthShell>
   );
 }

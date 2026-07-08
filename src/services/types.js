@@ -4,7 +4,7 @@
  * @property {string} email
  * @property {string} [displayName]
  * @property {string} [avatarUrl]
- * @property {'google' | 'apple' | 'mock'} authProvider
+ * @property {'google' | 'apple' | 'email'} authProvider
  */
 
 /**

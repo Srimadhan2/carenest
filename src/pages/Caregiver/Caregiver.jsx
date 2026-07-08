@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +10,7 @@ import { validateCaregiver } from '@/utils/validators/profileValidators';
 import { STRINGS } from '@/utils/constants/strings';
 import { ROUTES } from '@/utils/constants/routes';
 
-const initialValues = {
+const defaultValues = {
   firstName: '',
   lastName: '',
   dateOfBirth: '',
@@ -18,21 +19,41 @@ const initialValues = {
 
 export default function Caregiver() {
   const navigate = useNavigate();
-  const { saveCaregiver, finishOnboarding } = useCare();
+  const { onboardingDraft, saveCaregiverDraft, completeOnboarding } = useCare();
   const { showToast } = useUIContext();
+  // Prefill from the draft so an accidental refresh restores entered values.
   const { values, errors, handleChange, handleBlur, validateForm } = useForm(
-    initialValues,
+    { ...defaultValues, ...(onboardingDraft?.caregiver ?? {}) },
     validateCaregiver,
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const s = STRINGS.caregiver;
+
+  // If the care recipient step was never completed (e.g. deep link), go back.
+  useEffect(() => {
+    if (!onboardingDraft?.recipient) {
+      navigate(ROUTES.CARE_RECIPIENT, { replace: true });
+    }
+  }, [onboardingDraft, navigate]);
+
+  // Keep the draft in sync as the user types (persisted to sessionStorage).
+  useEffect(() => {
+    saveCaregiverDraft(values);
+  }, [values, saveCaregiverDraft]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!validateForm()) {
+    if (isSubmitting || !validateForm()) {
       return;
     }
-    await saveCaregiver(values);
-    finishOnboarding();
+    setIsSubmitting(true);
+    // Commits profile + care recipient + caregiver atomically via the RPC.
+    const result = await completeOnboarding(values);
+    if (result?.error) {
+      showToast(result.error.message || STRINGS.errors.generic, 'error');
+      setIsSubmitting(false);
+      return;
+    }
     showToast(s.encouragement, 'success');
     navigate(ROUTES.DASHBOARD);
   };
@@ -80,7 +101,7 @@ export default function Caregiver() {
         />
       </FormField>
 
-      <Button type="submit" size="lg" className="w-full">
+      <Button type="submit" size="lg" className="w-full" isLoading={isSubmitting}>
         {STRINGS.onboarding.complete}
       </Button>
     </form>

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,7 +12,7 @@ import { validateCareRecipient } from '@/utils/validators/profileValidators';
 import { STRINGS } from '@/utils/constants/strings';
 import { ROUTES } from '@/utils/constants/routes';
 
-const initialValues = {
+const defaultValues = {
   firstName: '',
   lastName: '',
   dateOfBirth: '',
@@ -21,19 +22,25 @@ const initialValues = {
 
 export default function CareRecipient() {
   const navigate = useNavigate();
-  const { saveCareRecipient } = useCare();
+  const { onboardingDraft, saveCareRecipientDraft } = useCare();
+  // Prefill from the draft so an accidental refresh restores entered values.
   const { values, errors, handleChange, handleBlur, validateForm } = useForm(
-    initialValues,
+    { ...defaultValues, ...(onboardingDraft?.recipient ?? {}) },
     validateCareRecipient,
   );
   const s = STRINGS.careRecipient;
 
-  const handleSubmit = async (event) => {
+  // Keep the draft in sync as the user types (persisted to sessionStorage).
+  useEffect(() => {
+    saveCareRecipientDraft(values);
+  }, [values, saveCareRecipientDraft]);
+
+  const handleSubmit = (event) => {
     event.preventDefault();
     if (!validateForm()) {
       return;
     }
-    await saveCareRecipient(values);
+    saveCareRecipientDraft(values);
     navigate(ROUTES.CAREGIVER);
   };
 

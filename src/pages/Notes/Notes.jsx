@@ -28,9 +28,12 @@ export default function Notes() {
   const visible = filter === 'all' ? notes : notes.filter((note) => note.type === filter);
 
   const handleCreate = async (content) => {
+    if (!careRecipient || !user?.id) {
+      return;
+    }
     await createNote({
       careRecipientId: careRecipient.id,
-      authorId: user?.id ?? 'mock-user',
+      authorId: user.id,
       content,
       type: 'manual',
     });

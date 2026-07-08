@@ -1,59 +1,68 @@
 import { useCallback } from 'react';
 import { useCareContext } from '@/contexts/CareContext';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { careRecipientService } from '@/services/profiles/careRecipientService';
-import { caregiverService } from '@/services/profiles/caregiverService';
+import { onboardingService } from '@/services/onboarding/onboardingService';
+import { ValidationError, err } from '@/services/errors';
 
 export function useCare() {
   const {
+    profile,
     careRecipient,
     caregiver,
     isOnboardingComplete,
+    onboardingDraft,
+    updateOnboardingDraft,
+    clearOnboardingDraft,
     setCareRecipient,
     setCaregiver,
-    completeOnboarding,
+    completeOnboarding: markOnboardingComplete,
   } = useCareContext();
-  const { user } = useAuthContext();
 
-  const saveCareRecipient = useCallback(
-    async (data) => {
-      const result = careRecipient
-        ? await careRecipientService.updateCareRecipient(careRecipient.id, data)
-        : await careRecipientService.createCareRecipient(data);
+  // Onboarding step 1: keep the entered care recipient values in the draft only.
+  // Nothing is written to the database until the final atomic commit.
+  const saveCareRecipientDraft = useCallback(
+    (data) => {
+      updateOnboardingDraft({ recipient: data });
+    },
+    [updateOnboardingDraft],
+  );
 
+  // Onboarding step 2: keep caregiver values in the draft so a refresh restores them.
+  const saveCaregiverDraft = useCallback(
+    (data) => {
+      updateOnboardingDraft({ caregiver: data });
+    },
+    [updateOnboardingDraft],
+  );
+
+  // Final step: commit profile + care recipient + caregiver atomically. On
+  // success the context is populated and the draft cleared; on failure the
+  // database is left unchanged.
+  const completeOnboarding = useCallback(
+    async (caregiverData) => {
+      const recipientData = onboardingDraft?.recipient;
+      if (!recipientData) {
+        return err(new ValidationError('Please complete the care recipient step first.'));
+      }
+      const result = await onboardingService.completeOnboarding(recipientData, caregiverData);
       if (result.data) {
-        setCareRecipient(result.data);
+        setCareRecipient(result.data.careRecipient);
+        setCaregiver(result.data.caregiver);
+        markOnboardingComplete();
+        clearOnboardingDraft();
       }
       return result;
     },
-    [careRecipient, setCareRecipient],
+    [onboardingDraft, setCareRecipient, setCaregiver, markOnboardingComplete, clearOnboardingDraft],
   );
-
-  const saveCaregiver = useCallback(
-    async (data) => {
-      const payload = { ...data, userId: user?.id ?? 'mock-user' };
-      const result = caregiver
-        ? await caregiverService.updateCaregiver(caregiver.id, payload)
-        : await caregiverService.createCaregiver(payload);
-
-      if (result.data) {
-        setCaregiver(result.data);
-      }
-      return result;
-    },
-    [caregiver, user, setCaregiver],
-  );
-
-  const finishOnboarding = useCallback(() => {
-    completeOnboarding();
-  }, [completeOnboarding]);
 
   return {
+    profile,
     careRecipient,
     caregiver,
     isOnboardingComplete,
-    saveCareRecipient,
-    saveCaregiver,
-    finishOnboarding,
+    onboardingDraft,
+    saveCareRecipientDraft,
+    saveCaregiverDraft,
+    completeOnboarding,
   };
 }

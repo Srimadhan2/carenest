@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { authService } from '@/services/auth/authService';
-import { sessionStorageAdapter } from '@/services/storage/sessionStorageAdapter';
+import { profileService } from '@/services/profile/profileService';
 
 /** @type {React.Context<null | object>} */
 const AuthContext = createContext(null);
@@ -12,18 +12,26 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
 
-    authService.getCurrentUser().then((result) => {
-      if (cancelled) {
-        return;
-      }
-      if (result.data) {
-        setUser(result.data);
-      }
-      setIsLoading(false);
-    });
+    // Restore the Supabase session on startup.
+    authService
+      .getCurrentUser()
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        if (result.data) {
+          setUser(result.data);
+        }
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
 
-    // Supabase mode: keeps user in sync after the Google OAuth redirect,
-    // token refreshes, and sign-outs in other tabs. No-op in mock mode.
+    // Keeps the user in sync after the Google OAuth redirect, token refreshes,
+    // and sign-outs in other tabs.
     const unsubscribe = authService.onAuthStateChange((nextUser) => {
       if (!cancelled) {
         setUser(nextUser);
@@ -37,9 +45,18 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // Guarantee a profile row exists for the authenticated user (the signup
+  // trigger normally creates it; this covers pre-existing accounts). Idempotent.
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+    profileService.ensureProfile(user);
+  }, [user]);
+
   const signInWithGoogle = useCallback(async () => {
-    // Supabase mode redirects to Google here; the user state is set by
-    // onAuthStateChange after the redirect back. Mock mode resolves inline.
+    // Redirects to Google; the user state is set by onAuthStateChange after
+    // the redirect returns to the app.
     const result = await authService.signInWithGoogle();
     if (result.data && typeof result.data === 'object' && 'id' in result.data) {
       setUser(result.data);
@@ -48,8 +65,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signInWithEmail = useCallback(async (credentials) => {
-    // onAuthStateChange sets the user in Supabase mode; set it here too so
-    // mock mode (no listener) and immediate reads stay in sync.
+    // onAuthStateChange also sets the user; set it here too for immediate reads.
     const result = await authService.signInWithEmail(credentials);
     if (result.data) {
       setUser(result.data);
@@ -70,8 +86,8 @@ export function AuthProvider({ children }) {
   const updatePassword = useCallback((password) => authService.updatePassword(password), []);
 
   const signOut = useCallback(async () => {
+    // Ends the Supabase session only; user data in the database is never deleted.
     await authService.signOut();
-    sessionStorageAdapter.clear();
     setUser(null);
   }, []);
 

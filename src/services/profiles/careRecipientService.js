@@ -1,96 +1,50 @@
-import { FEATURE_FLAGS } from '@/utils/constants/featureFlags';
-import { supabase } from '@/lib/supabase';
-import { sessionStorageAdapter } from '@/services/storage/sessionStorageAdapter';
-import { ok, err, ServiceError } from '@/services/errors';
-
-const STORAGE_KEY = 'profiles:careRecipient';
-
-function generateId() {
-  return `cr-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/**
- * @returns {import('@/services/types.js').CareRecipient | null}
- */
-function getMock() {
-  const raw = sessionStorageAdapter.get(STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+import { getSupabase } from '@/lib/supabase';
+import { ok, err, fromSupabaseError } from '@/services/errors';
 
 export const careRecipientService = {
   /**
    * @param {string} id
    */
   async getCareRecipient(id) {
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data, error } = await supabase
-        .from('care_recipients')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(mapFromDb(data));
+    const { data, error } = await getSupabase()
+      .from('care_recipients')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not load the care recipient.'));
     }
-    const stored = getMock();
-    if (!stored || stored.id !== id) {
-      return err(new ServiceError('Care recipient not found'));
-    }
-    return ok(stored);
+    return ok(mapFromDb(data));
   },
 
   /** Care recipient owned by the signed-in user (RLS-scoped), or null. */
   async getActiveCareRecipient() {
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data, error } = await supabase
-        .from('care_recipients')
-        .select('*')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(data ? mapFromDb(data) : null);
+    const { data, error } = await getSupabase()
+      .from('care_recipients')
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not load the care recipient.'));
     }
-    const stored = getMock();
-    return ok(stored);
+    return ok(data ? mapFromDb(data) : null);
   },
 
   /**
    * @param {Omit<import('@/services/types.js').CareRecipient, 'id' | 'createdAt'>} data
    */
   async createCareRecipient(data) {
-    const now = new Date().toISOString();
-    const record = {
-      ...data,
-      id: generateId(),
-      createdAt: now,
-    };
-
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data: row, error } = await supabase
-        .from('care_recipients')
-        .insert(mapToDb(record))
-        .select()
-        .single();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(mapFromDb(row));
+    const { data: row, error } = await getSupabase()
+      .from('care_recipients')
+      .insert(mapToDb(data))
+      .select()
+      .single();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not save the care recipient.'));
     }
-
-    sessionStorageAdapter.set(STORAGE_KEY, JSON.stringify(record));
-    return ok(record);
+    return ok(mapFromDb(row));
   },
 
   /**
@@ -98,26 +52,16 @@ export const careRecipientService = {
    * @param {Partial<import('@/services/types.js').CareRecipient>} data
    */
   async updateCareRecipient(id, data) {
-    if (FEATURE_FLAGS.USE_SUPABASE && supabase) {
-      const { data: row, error } = await supabase
-        .from('care_recipients')
-        .update(mapToDb({ ...data, updatedAt: new Date().toISOString() }))
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) {
-        return err(new ServiceError(error.message));
-      }
-      return ok(mapFromDb(row));
+    const { data: row, error } = await getSupabase()
+      .from('care_recipients')
+      .update(mapToDb(data))
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) {
+      return err(fromSupabaseError(error, 'Could not save the care recipient.'));
     }
-
-    const stored = getMock();
-    if (!stored || stored.id !== id) {
-      return err(new ServiceError('Care recipient not found'));
-    }
-    const updated = { ...stored, ...data, updatedAt: new Date().toISOString() };
-    sessionStorageAdapter.set(STORAGE_KEY, JSON.stringify(updated));
-    return ok(updated);
+    return ok(mapFromDb(row));
   },
 };
 
@@ -138,15 +82,19 @@ function mapFromDb(row) {
 }
 
 /**
+ * Maps app fields to DB columns, omitting undefined so partial updates only
+ * touch provided columns. user_id and updated_at are set by the DB
+ * (DEFAULT auth.uid() and the set_updated_at trigger).
  * @param {Partial<import('@/services/types.js').CareRecipient>} record
  */
 function mapToDb(record) {
-  return {
+  const row = {
     first_name: record.firstName,
     last_name: record.lastName,
     date_of_birth: record.dateOfBirth,
     gender: record.gender,
     health_description: record.healthDescription,
-    updated_at: record.updatedAt,
   };
+  Object.keys(row).forEach((key) => row[key] === undefined && delete row[key]);
+  return row;
 }

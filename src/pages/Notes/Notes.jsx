@@ -27,7 +27,7 @@ export default function Notes() {
 
   const visible = filter === 'all' ? notes : notes.filter((note) => note.type === filter);
 
-  const handleCreate = async (content) => {
+  const handleCreate = async (content, type = 'manual') => {
     if (!careRecipient || !user?.id) {
       return;
     }
@@ -35,7 +35,7 @@ export default function Notes() {
       careRecipientId: careRecipient.id,
       authorId: user.id,
       content,
-      type: 'manual',
+      type,
     });
   };
 

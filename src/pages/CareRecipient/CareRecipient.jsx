@@ -92,7 +92,7 @@ export default function CareRecipient() {
           value={values.healthDescription}
           onChange={(e) => handleChange('healthDescription', e.target.value)}
         />
-        <VoiceButton />
+        <VoiceButton placeholder />
       </FormField>
 
       <HipaaNotice />

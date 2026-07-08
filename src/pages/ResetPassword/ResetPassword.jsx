@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useForm } from '@/hooks/useForm';
+import { authService } from '@/services/auth/authService';
 import { validateResetPassword } from '@/utils/validators/authValidators';
 import { STRINGS } from '@/utils/constants/strings';
 import { ROUTES } from '@/utils/constants/routes';
@@ -21,7 +22,30 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [done, setDone] = useState(false);
+  // The email link must have established a (recovery) session for updateUser to
+  // work. Verify it up front so an invalid/expired link shows a clear message
+  // instead of a confusing failure after the user types a new password.
+  const [sessionState, setSessionState] = useState('checking');
   const a = STRINGS.auth;
+
+  useEffect(() => {
+    let cancelled = false;
+    authService
+      .getSession()
+      .then((result) => {
+        if (!cancelled) {
+          setSessionState(result?.data ? 'ready' : 'invalid');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSessionState('invalid');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -45,6 +69,32 @@ export default function ResetPassword() {
       <AuthShell title={a.resetDoneTitle} subtitle={a.resetDoneBody}>
         <Button size="lg" className="w-full" onClick={() => navigate(ROUTES.DASHBOARD)}>
           {a.continueToApp}
+        </Button>
+      </AuthShell>
+    );
+  }
+
+  if (sessionState === 'checking') {
+    return <AuthShell title={a.resetTitle} subtitle={a.resetChecking} />;
+  }
+
+  if (sessionState === 'invalid') {
+    return (
+      <AuthShell
+        title={a.resetInvalidTitle}
+        subtitle={a.resetInvalidBody}
+        footer={
+          <Link to={ROUTES.HOME} className="font-medium text-primary hover:underline">
+            {a.backToLogin}
+          </Link>
+        }
+      >
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
+        >
+          {a.requestNewLink}
         </Button>
       </AuthShell>
     );

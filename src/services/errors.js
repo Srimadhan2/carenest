@@ -101,6 +101,14 @@ export function fromSupabaseAuthError(
     message = 'An account with this email already exists.';
   } else if (/rate limit|too many/i.test(raw)) {
     message = 'Too many attempts. Please wait a moment and try again.';
+  } else if (/should be different|same_password/i.test(raw)) {
+    message = 'Please choose a password different from your current one.';
+  } else if (
+    /auth session missing|session missing|session_not_found|jwt expired|token has expired|invalid claim|refresh token/i.test(
+      raw,
+    )
+  ) {
+    message = 'Your reset link is invalid or has expired. Please request a new one.';
   } else if (/password/i.test(raw)) {
     message = 'Please choose a stronger password (at least 8 characters).';
   }

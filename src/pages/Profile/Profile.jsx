@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, Pencil, Shield } from 'lucide-react';
 import { Navbar } from '@/components/navigation/Navbar';
 import { ListGroup, ListRow } from '@/components/ui/ListRow';
 import { useCare } from '@/hooks/useCare';
+import { useSignOut } from '@/hooks/useSignOut';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useCareContext } from '@/contexts/CareContext';
 import { profileService } from '@/services/profile/profileService';
 import { calculateAge } from '@/utils/helpers/formatAge';
 import { STRINGS } from '@/utils/constants/strings';
@@ -25,10 +24,9 @@ function fullName(person) {
 
 export default function Profile() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const signOut = useSignOut();
   const { careRecipient, caregiver } = useCare();
-  const { user, signOut } = useAuthContext();
-  const { resetCare } = useCareContext();
+  const { user } = useAuthContext();
   const [profile, setProfile] = useState(null);
   const p = STRINGS.profile;
 
@@ -43,14 +41,6 @@ export default function Profile() {
       cancelled = true;
     };
   }, [user?.id]);
-
-  // Clear all client state so the next account never sees this account's data.
-  const handleSignOut = async () => {
-    await signOut();
-    resetCare();
-    queryClient.clear();
-    navigate(ROUTES.HOME);
-  };
 
   const accountName = fullName(profile) || user?.displayName || p.notSet;
   const accountEmail = profile?.email || user?.email || p.notSet;
@@ -93,7 +83,7 @@ export default function Profile() {
       </ListGroup>
 
       <ListGroup>
-        <ListRow icon={LogOut} label={p.signOut} destructive onClick={handleSignOut} />
+        <ListRow icon={LogOut} label={p.signOut} destructive onClick={signOut} />
       </ListGroup>
     </div>
   );

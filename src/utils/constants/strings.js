@@ -51,6 +51,11 @@ export const STRINGS = {
     resetDoneTitle: 'Password updated',
     resetDoneBody: 'Your password has been changed. You are all set.',
     continueToApp: 'Continue',
+    resetInvalidTitle: 'Reset link expired',
+    resetInvalidBody:
+      'This password reset link is invalid or has expired. Request a new one to continue.',
+    requestNewLink: 'Request a new link',
+    resetChecking: 'Verifying your reset link…',
   },
   authErrors: {
     invalidEmail: 'Please enter a valid email address',
@@ -132,6 +137,12 @@ export const STRINGS = {
     dashboard: 'Home',
     notes: 'Notes',
     profile: 'Profile',
+  },
+  menu: {
+    open: 'Account menu',
+    profile: 'Profile',
+    settings: 'Settings',
+    signOut: 'Sign Out',
   },
   profile: {
     title: 'Profile',

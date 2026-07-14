@@ -28,6 +28,10 @@ export const authService = {
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
+        // Always show Google's account chooser so users can pick / add another account.
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     });
     if (error) {

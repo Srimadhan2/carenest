@@ -121,6 +121,7 @@ export default function CreateAccount() {
           label={a.password}
           autoComplete="new-password"
           helperText={a.passwordHint}
+          revealable
           value={values.password}
           onChange={(e) => handleChange('password', e.target.value)}
           onBlur={() => handleBlur('password')}
@@ -131,6 +132,7 @@ export default function CreateAccount() {
           name="confirmPassword"
           label={a.confirmPassword}
           autoComplete="new-password"
+          revealable
           value={values.confirmPassword}
           onChange={(e) => handleChange('confirmPassword', e.target.value)}
           onBlur={() => handleBlur('confirmPassword')}

@@ -15,6 +15,8 @@ export const STRINGS = {
     emailPlaceholder: 'you@example.com',
     password: 'Password',
     passwordPlaceholder: 'Enter your password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     login: 'Log In',
     loggingIn: 'Logging in…',
     forgotPassword: 'Forgot password?',

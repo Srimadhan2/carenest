@@ -17,6 +17,8 @@ export const STRINGS = {
     passwordPlaceholder: 'Enter your password',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
+    show: 'Show',
+    hide: 'Hide',
     login: 'Log In',
     loggingIn: 'Logging in…',
     forgotPassword: 'Forgot password?',

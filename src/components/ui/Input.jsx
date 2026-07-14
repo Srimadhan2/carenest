@@ -28,11 +28,11 @@ export const Input = forwardRef(function Input(
             error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
           }
           className={cn(
-            'min-h-11 w-full rounded-xl border border-border bg-surface px-4 text-body text-text',
+            'min-h-11 w-full rounded-xl border border-border bg-surface text-body text-text',
             'placeholder:text-text-secondary',
             'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
             error && 'border-danger focus:border-danger focus:ring-danger/20',
-            isPassword && 'pr-11',
+            isPassword ? 'py-2 pl-4 pr-20' : 'px-4',
             className,
           )}
           {...props}
@@ -41,21 +41,26 @@ export const Input = forwardRef(function Input(
         {isPassword && (
           <button
             type="button"
-            tabIndex={0}
+            onMouseDown={(event) => {
+              // Keep focus in the field while toggling visibility.
+              event.preventDefault();
+            }}
             onClick={() => setPasswordVisible((prev) => !prev)}
             aria-label={passwordVisible ? STRINGS.auth.hidePassword : STRINGS.auth.showPassword}
             aria-pressed={passwordVisible}
             className={cn(
-              'absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg',
-              'text-text-secondary transition-colors hover:bg-background hover:text-text',
+              'absolute inset-y-0 right-0 z-20 m-1 flex items-center gap-1.5 rounded-lg px-2.5',
+              'bg-surface text-label font-medium text-primary',
+              'hover:bg-primary/10',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
             )}
           >
             {passwordVisible ? (
-              <EyeOff className="h-5 w-5" aria-hidden="true" />
+              <EyeOff className="h-4 w-4 shrink-0" aria-hidden="true" />
             ) : (
-              <Eye className="h-5 w-5" aria-hidden="true" />
+              <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
             )}
+            <span>{passwordVisible ? STRINGS.auth.hide : STRINGS.auth.show}</span>
           </button>
         )}
       </div>

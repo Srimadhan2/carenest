@@ -42,7 +42,7 @@ export default function Login() {
     setIsSubmitting(true);
     const result = await signInWithEmail({ email: values.email.trim(), password: values.password });
     if (result?.error) {
-      setFormError(STRINGS.authErrors.signInFailed);
+      setFormError(result.error.message || STRINGS.authErrors.signInFailed);
       setIsSubmitting(false);
     }
   };
